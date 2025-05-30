@@ -1,108 +1,58 @@
--- 增强版 vox.lua
-local MakePlayerCharacter = require "prefabs/player_common"
-
+-- 手动实现的 vox.lua - 完全避免 player_common
 local assets = {
-    Asset("SCRIPT", "scripts/prefabs/player_common.lua"),
     Asset("ANIM", "anim/vox.zip"),
     Asset("ANIM", "anim/ghost_vox_build.zip"),
 }
 
--- 初始物品
-local start_inv = {
-    "yamchaflower_robe",
-    "cydonia_letter", 
-    "onigiri",
-}
-
--- 通用初始化
+-- 通用初始化（客户端和服务器）
 local function common_postinit(inst)
     inst:AddTag("vox")
     inst:AddTag("demonicswordsman")
+    inst:AddTag("player")
     
-    -- 使用wilson的音效
+    -- 音效设置
     inst.soundsname = "wilson"
-    inst.talker_path_override = "dontstarve/characters/wilson/talk_LP"
+    
+    -- 小地图图标
+    inst.MiniMapEntity:SetIcon("vox.tex")
 end
 
--- 主要初始化
+-- 服务器端初始化
 local function master_postinit(inst)
-    -- 设置属性
-    inst.components.health:SetMaxHealth(TUNING.VOX_STATS.HEALTH)
-    inst.components.hunger:SetMax(TUNING.VOX_STATS.HUNGER)
-    inst.components.sanity:SetMax(TUNING.VOX_STATS.SANITY)
+    -- 基础属性
+    inst.components.health:SetMaxHealth(200)
+    inst.components.hunger:SetMax(150)
+    inst.components.sanity:SetMax(120)
     
-    -- 海鲜厌恶标签
+    -- 标签
     inst:AddTag("hates_seafood")
     
-    -- 战斗设置
-    inst.components.combat.damagemultiplier = 1.0
-    inst.components.combat:SetRange(2)
+    -- 新角色出生时给予初始物品
+    inst.starting_inventory = {
+        "yamachaflower_robe",
+        "cydonia_letter", 
+        "onigiri",
+    }
     
-    -- Boss能力相关的工作效率加成
-    local old_GetEffectiveness = inst.components.worker.GetEffectiveness
-    inst.components.worker.GetEffectiveness = function(self, action)
-        local eff = old_GetEffectiveness(self, action)
-        if inst.work_efficiency_mult and (action == ACTIONS.CHOP or action == ACTIONS.MINE) then
-            return eff * inst.work_efficiency_mult
-        end
-        return eff
-    end
-    
-    -- 火焰免疫处理
-    local old_DoDelta = inst.components.health.DoDelta
-    inst.components.health.DoDelta = function(self, amount, overtime, cause, ignore_invincible, afflicter, ignore_absorb)
-        if inst.fire_immunity and cause == "fire" then
-            return 0
-        end
-        return old_DoDelta(self, amount, overtime, cause, ignore_invincible, afflicter, ignore_absorb)
-    end
-    
-    -- 新玩家生成时给予初始物品
-    inst.OnNewSpawn = function(inst)
-        inst.components.inventory:GiveItem(SpawnPrefab("yamchaflower_robe"))
-        inst.components.inventory:GiveItem(SpawnPrefab("cydonia_letter"))
-        inst.components.inventory:GiveItem(SpawnPrefab("onigiri"))
-    end
-    
-    -- 保存/加载Boss能力
-    inst.OnSave = function(inst, data)
-        if inst.current_boss_ability then
-            data.current_boss_ability = inst.current_boss_ability
-            if inst.boss_ability_task then
-                data.ability_time_left = inst.boss_ability_task.time
+    -- 实际给予初始物品的函数
+    inst.OnSpawnInventory = function(inst)
+        for _, item in ipairs(inst.starting_inventory) do
+            local spawned_item = SpawnPrefab(item)
+            if spawned_item then
+                inst.components.inventory:GiveItem(spawned_item)
             end
         end
     end
     
-    inst.OnLoad = function(inst, data)
-        if data and data.current_boss_ability then
-            local ability = BOSS_ABILITIES[data.current_boss_ability]
-            if ability and data.ability_time_left then
-                -- 恢复Boss能力
-                inst.current_boss_ability = data.current_boss_ability
-                inst:AddTag(data.current_boss_ability.."_buff")
-                
-                -- 重新应用效果
-                if data.current_boss_ability == "deerclops" and inst.components.freezable then
-                    inst.components.freezable:SetResistance(999)
-                elseif data.current_boss_ability == "bearger" then
-                    inst.work_efficiency_mult = 2
-                elseif data.current_boss_ability == "dragonfly" then
-                    inst.fire_immunity = true
-                elseif data.current_boss_ability == "spiderqueen" then
-                    inst:AddTag("spiderwhisperer")
-                end
-                
-                -- 重新设置任务
-                inst.boss_ability_task = inst:DoTaskInTime(data.ability_time_left, function()
-                    -- 移除能力的逻辑...
-                end)
-            end
+    -- 延迟给予物品（确保组件已初始化）
+    inst:DoTaskInTime(0, function()
+        if inst.OnSpawnInventory then
+            inst.OnSpawnInventory(inst)
         end
-    end
+    end)
 end
 
--- 创建角色函数
+-- 创建角色预制体的主函数
 local function fn()
     local inst = CreateEntity()
 
@@ -111,18 +61,24 @@ local function fn()
     inst.entity:AddSoundEmitter()
     inst.entity:AddDynamicShadow()
     inst.entity:AddNetwork()
+    inst.entity:AddMiniMapEntity()
 
+    -- 物理设置
     MakeCharacterPhysics(inst, 75, .5)
     inst.DynamicShadow:SetSize(1.3, .6)
     inst.Transform:SetFourFaced()
 
+    -- 动画设置
     inst.AnimState:SetBank("wilson")
     inst.AnimState:SetBuild("vox")
     inst.AnimState:PlayAnimation("idle")
+    inst.AnimState:Hide("ARM_carry")
+    inst.AnimState:Hide("hat")
+    inst.AnimState:Hide("hat_hair")
 
+    -- 基础标签
+    inst:AddTag("character")
     inst:AddTag("scarytoprey")
-    inst:AddTag("vox")
-    inst:AddTag("demonicswordsman")
 
     -- 通用初始化
     common_postinit(inst)
@@ -133,32 +89,78 @@ local function fn()
         return inst
     end
 
-    -- 添加必要组件
+    -- === 服务器端组件 ===
+    
+    -- 移动组件
     inst:AddComponent("locomotor")
-    inst.components.locomotor.walkspeed = TUNING.WILSON_WALK_SPEED * 1.05
-    inst.components.locomotor.runspeed = TUNING.WILSON_RUN_SPEED * 1.05
+    inst.components.locomotor.walkspeed = TUNING.WILSON_WALK_SPEED
+    inst.components.locomotor.runspeed = TUNING.WILSON_RUN_SPEED
 
+    -- 基础组件
     inst:AddComponent("inventory")
     inst:AddComponent("inspectable")
+    
+    -- 生命值组件
     inst:AddComponent("health")
+    inst.components.health:SetMaxHealth(200)
+    
+    -- 饥饿值组件
     inst:AddComponent("hunger")
+    inst.components.hunger:SetMax(150)
+    
+    -- 理智值组件
     inst:AddComponent("sanity")
+    inst.components.sanity:SetMax(120)
+    
+    -- 战斗组件
     inst:AddComponent("combat")
     inst.components.combat.hiteffectsymbol = "torso"
+    inst.components.combat.damagemultiplier = 1.0
+    
+    -- 温度组件
     inst:AddComponent("temperature")
+    
+    -- 饮食组件
     inst:AddComponent("eater")
+    inst.components.eater:SetDiet({ FOODGROUP.OMNI }, { FOODGROUP.OMNI })
+    
+    -- 建造组件
     inst:AddComponent("builder")
+    
+    -- 湿度组件
     inst:AddComponent("moisture")
+    
+    -- 冰冻组件
     inst:AddComponent("freezable")
+    
+    -- 眩晕组件
     inst:AddComponent("grogginess")
     inst.components.grogginess:SetResistance(3)
+    
+    -- 工作组件
     inst:AddComponent("worker")
-
-    -- 主要初始化
+    
+    -- 玩家控制组件
+    inst:AddComponent("playercontroller")
+    
+    -- 发言组件
+    inst:AddComponent("talker")
+    inst.components.talker.fontsize = 35
+    inst.components.talker.font = TALKINGFONT
+    inst.components.talker.offset = Vector3(0, -400, 0)
+    
+    -- 角色专用组件
+    inst:AddComponent("playerlightningtarget")
+    inst:AddComponent("playervision")
+    
+    -- 服务器端初始化
     master_postinit(inst)
 
+    -- 设置描述信息（用于角色选择界面）
+    inst.displayname = "Vox"
+    inst.charactername = "vox"
+    
     return inst
 end
 
--- 返回角色
-return MakePlayerCharacter("vox", fn, start_inv, assets)
+return Prefab("vox", fn, assets)

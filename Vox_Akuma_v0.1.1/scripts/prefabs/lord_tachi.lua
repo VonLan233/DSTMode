@@ -1,16 +1,14 @@
-local assets =
-{
+-- 修复后的 lord_tachi.lua
+local assets = {
     Asset("ANIM", "anim/lord_tachi.zip"),
     Asset("ATLAS", "images/inventoryimages/lord_tachi_normal.xml"),
-    Assets("ATLAS", "images/inventoryimages/lord_tachi_fire.xml"),
-    Asset("IMAGE", "images/inventoryimages/lord_tachi.tex"),
+    -- Asset("ATLAS", "images/inventoryimages/lord_tachi_fire.tex"),
+    Asset("IMAGE", "images/inventoryimages/lord_tachi_normal.tex"),
 }
 
--- inst.components.inventoryitem.imagename = "nightsword"   -- 占位
--- inst.components.inventoryitem.atlasname = "images/inventoryimages/nightsword.xml"
-
+-- 攻击特殊处理
 local function onattack(inst, owner, target)
-    if owner.prefab == "vox" then
+    if owner and owner.prefab == "vox" then
         if target and target.prefab == "dragonfly" then
             -- 对龙蝇造成1.5倍伤害
             return inst.components.weapon.damage * 1.5
@@ -19,6 +17,7 @@ local function onattack(inst, owner, target)
     return inst.components.weapon.damage
 end
 
+-- 装备时
 local function onequip(inst, owner)
     owner.AnimState:OverrideSymbol("swap_object", "lord_tachi", "swap_object")
     owner.AnimState:Show("ARM_carry")
@@ -29,15 +28,18 @@ local function onequip(inst, owner)
         -- 添加火焰视觉效果
         if inst.firefx == nil then
             inst.firefx = SpawnPrefab("torchfire")
-            inst.firefx.Transform:SetPosition(0, 0, 0)
-            inst:AddChild(inst.firefx)
-            
-            -- 调整火焰大小和位置
-            inst.firefx.Transform:SetScale(0.6, 0.6, 0.6)
+            if inst.firefx then
+                inst.firefx.Transform:SetPosition(0, 0, 0)
+                inst:AddChild(inst.firefx)
+                
+                -- 调整火焰大小和位置
+                inst.firefx.Transform:SetScale(0.6, 0.6, 0.6)
+            end
         end
     end
 end
 
+-- 取消装备时
 local function onunequip(inst, owner)
     owner.AnimState:Hide("ARM_carry")
     owner.AnimState:Show("ARM_normal")
@@ -50,6 +52,7 @@ local function onunequip(inst, owner)
     end
 end
 
+-- 切换火焰附魔
 local function ToggleFireEnchant(inst)
     inst.fireenabled = not inst.fireenabled
     
@@ -61,9 +64,11 @@ local function ToggleFireEnchant(inst)
         if inst.components.equippable:IsEquipped() then
             if inst.firefx == nil then
                 inst.firefx = SpawnPrefab("torchfire")
-                inst.firefx.Transform:SetPosition(0, 0, 0)
-                inst:AddChild(inst.firefx)
-                inst.firefx.Transform:SetScale(0.6, 0.6, 0.6)
+                if inst.firefx then
+                    inst.firefx.Transform:SetPosition(0, 0, 0)
+                    inst:AddChild(inst.firefx)
+                    inst.firefx.Transform:SetScale(0.6, 0.6, 0.6)
+                end
             end
         end
     else
@@ -79,6 +84,7 @@ local function ToggleFireEnchant(inst)
     end
 end
 
+-- 升级太刀
 local function UpgradeSword(inst, item, doer)
     if item and item.prefab == "redgem" and doer and doer.prefab == "vox" then
         if inst.level < 10 then
@@ -98,36 +104,43 @@ local function UpgradeSword(inst, item, doer)
             
             -- 播放升级效果
             local fx = SpawnPrefab("lavaarena_player_revive_from_corpse_fx")
-            fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
+            if fx then
+                fx.Transform:SetPosition(inst.Transform:GetWorldPosition())
+            end
             
             -- 提示升级成功
-            doer.components.talker:Say("太刀提升到了 "..inst.level.." 级！伤害: "..inst.components.weapon.damage)
+            if doer.components.talker then
+                doer.components.talker:Say("太刀提升到了 "..inst.level.." 级！伤害: "..inst.components.weapon.damage)
+            end
             
             -- 满级解锁火焰附魔
             if inst.level == 10 then
-                doer.components.talker:Say("太刀达到最高等级！右键可开关火焰附魔。")
+                if doer.components.talker then
+                    doer.components.talker:Say("太刀达到最高等级！右键可开关火焰附魔。")
+                end
                 inst:AddTag("maxlevel")
             end
             
             return true
         else
-            doer.components.talker:Say("太刀已经达到最高等级了。")
+            if doer.components.talker then
+                doer.components.talker:Say("太刀已经达到最高等级了。")
+            end
         end
     end
     
     return false
 end
 
+-- 右键使用
 local function onRightClick(inst)
     if inst:HasTag("maxlevel") then
         ToggleFireEnchant(inst)
         
-        if inst.fireenabled then
-            if inst.components.inventoryitem.owner then
+        if inst.components.inventoryitem.owner and inst.components.inventoryitem.owner.components.talker then
+            if inst.fireenabled then
                 inst.components.inventoryitem.owner.components.talker:Say("火焰附魔已启动！")
-            end
-        else
-            if inst.components.inventoryitem.owner then
+            else
                 inst.components.inventoryitem.owner.components.talker:Say("火焰附魔已关闭。")
             end
         end
@@ -138,6 +151,35 @@ local function onRightClick(inst)
     return false
 end
 
+-- 保存数据
+local function OnSave(inst, data)
+    data.level = inst.level
+    data.basedamage = inst.basedamage
+    data.fireenabled = inst.fireenabled
+end
+
+-- 加载数据
+local function OnLoad(inst, data)
+    if data then
+        inst.level = data.level or 1
+        inst.basedamage = data.basedamage or 59.9
+        inst.fireenabled = data.fireenabled or false
+        
+        -- 恢复武器伤害
+        if inst.fireenabled then
+            inst.components.weapon.damage = inst.basedamage + 10
+        else
+            inst.components.weapon.damage = inst.basedamage
+        end
+        
+        -- 恢复满级标签
+        if inst.level >= 10 then
+            inst:AddTag("maxlevel")
+        end
+    end
+end
+
+-- 主函数
 local function fn()
     local inst = CreateEntity()
 
@@ -153,25 +195,26 @@ local function fn()
     
     inst:AddTag("sharp")
     inst:AddTag("voxitem")
-    
-    -- 允许右键使用
-    inst:AddComponent("inspectable")
-    
+
+    inst.entity:SetPristine()
+
     if not TheWorld.ismastersim then
         return inst
     end
 
-    inst.entity:SetPristine()
-
+    inst:AddComponent("inspectable")
+    inst.components.inspectable:SetDescription("Vox的专属太刀，可用红宝石升级")
+    
     inst:AddComponent("weapon")
     inst.components.weapon:SetDamage(59.9)
     inst.components.weapon:SetOnAttack(onattack)
     
     inst:AddComponent("inventoryitem")
-    inst.components.inventoryitem.imagename = "lord_tachi"
-    inst.components.inventoryitem.atlasname = "images/inventoryimages/lord_tachi.xml"
+    inst.components.inventoryitem.imagename = "lord_tachi_normal"
+    inst.components.inventoryitem.atlasname = "images/inventoryimages/lord_tachi_normal.xml"
 
     inst:AddComponent("equippable")
+    inst.components.equippable.equipslot = EQUIPSLOTS.HANDS
     inst.components.equippable:SetOnEquip(onequip)
     inst.components.equippable:SetOnUnequip(onunequip)
     
@@ -200,9 +243,13 @@ local function fn()
     -- 火焰附魔特效
     inst.firefx = nil
     
+    -- 保存和加载
+    inst.OnSave = OnSave
+    inst.OnLoad = OnLoad
+    
     MakeHauntableLaunch(inst)
 
     return inst
 end
 
-Prefab("lord_tachi", fn, assets)
+return Prefab("lord_tachi", fn, assets)

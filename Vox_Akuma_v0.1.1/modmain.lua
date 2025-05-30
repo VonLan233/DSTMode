@@ -1,4 +1,4 @@
--- 最小工作版 modmain.lua - 专注于基础功能
+-- 修复后的 modmain.lua - 专注于基础功能并包含领主太刀
 local require = GLOBAL.require
 local STRINGS = GLOBAL.STRINGS
 local TUNING = GLOBAL.TUNING
@@ -18,9 +18,10 @@ TUNING.VOX_STATS = {
 -- PrefabFiles
 PrefabFiles = {
     "vox",
-    "yamchaflower_robe", 
+    "yamachaflower_robe", 
     "cydonia_letter",
     "onigiri",
+    "lord_tachi",
 }
 
 -- 添加角色
@@ -45,8 +46,8 @@ for _, food_name in ipairs(SEAFOOD_LIST) do
     end)
 end
 
--- 简化版Boss能力系统
-local BOSS_ABILITIES = {
+-- Boss能力系统
+GLOBAL.BOSS_ABILITIES = {
     spiderqueen = {name = "蜘蛛女王之力", duration = 120},
     deerclops = {name = "巨鹿之力", duration = 120},
     bearger = {name = "熊獾之力", duration = 120},
@@ -128,7 +129,7 @@ AddPlayerPostInit(function(inst)
                 -- Boss能力获取
                 if victim:HasTag("epic") then
                     local boss_name = victim.prefab
-                    local ability = BOSS_ABILITIES[boss_name]
+                    local ability = GLOBAL.BOSS_ABILITIES[boss_name]
                     
                     if ability then
                         -- 移除旧能力
@@ -191,6 +192,21 @@ AddPlayerPostInit(function(inst)
     end
 end)
 
+-- 延迟添加配方
+AddGamePostInit(function()
+    -- 山茶花羽织配方
+    local yamachaflower_robe = Recipe("yamachaflower_robe",
+        { Ingredient("silk", 4), Ingredient("rope", 1), Ingredient("log", 4) },
+        RECIPETABS.DRESS, TECH.SCIENCE_ONE)
+    yamachaflower_robe.atlas = "images/inventoryimages/yamachaflower_robe.xml"
+    
+    -- 领主太刀配方
+    local lord_tachi = Recipe("lord_tachi",
+        { Ingredient("redgem", 1), Ingredient("goldnugget", 4), Ingredient("nightmarefuel", 2) },
+        RECIPETABS.WAR, TECH.SCIENCE_TWO)
+    lord_tachi.atlas = "images/inventoryimages/lord_tachi_normal.xml"
+end)
+
 -- 客户端按键处理
 AddSimPostInit(function()
     -- 猴子感应按键
@@ -201,13 +217,4 @@ AddSimPostInit(function()
             end
         end)
     end
-end)
-
--- 延迟添加配方
-AddGamePostInit(function()
-    -- 山茶花羽织配方
-    local yamchaflower_robe = Recipe("yamchaflower_robe",
-        { Ingredient("silk", 4), Ingredient("rope", 1), Ingredient("log", 4) },
-        RECIPETABS.DRESS, TECH.SCIENCE_ONE)
-    yamchaflower_robe.atlas = "images/inventoryimages/yamchaflower_robe.xml"
 end)

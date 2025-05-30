@@ -1,19 +1,14 @@
--- 简化版 yamchaflower_robe.lua
-local assets =
-{
-    Asset("ANIM", "anim/yamchaflower_robe.zip"),
-    Asset("ATLAS", "images/inventoryimages/yamchaflower_robe.xml"),
-    Asset("IMAGE", "images/inventoryimages/yamchaflower_robe.tex"),
+-- yamchaflower_robe.lua - 山茶花羽织
+local assets = {
+    Asset("ANIM", "anim/yamachaflower_robe.zip"),
+    Asset("ATLAS", "images/inventoryimages/yamachaflower_robe.xml"),
+    Asset("IMAGE", "images/inventoryimages/yamachaflower_robe.tex"),
 }
 
 local function onequip(inst, owner)
     owner.AnimState:OverrideSymbol("swap_body", "yamchaflower_robe", "swap_body")
     
     -- 提供80%的护甲值和5%的移速加成
-    if inst.components.armor then
-        inst.components.armor:SetAbsorption(0.8)
-    end
-    
     if owner.components.locomotor then
         owner.components.locomotor:SetExternalSpeedMultiplier(owner, "yamchaflower_robe", 1.05)
     end
@@ -49,7 +44,7 @@ local function fn()
     end
 
     inst:AddComponent("inspectable")
-    inst.components.inspectable:SetDescription("Vox的专属羽织")
+    inst.components.inspectable:SetDescription("Vox的专属羽织，提供防护和移速加成")
     
     inst:AddComponent("inventoryitem")
     inst.components.inventoryitem.imagename = "yamchaflower_robe"
