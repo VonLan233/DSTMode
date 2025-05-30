@@ -3,8 +3,8 @@
 
 Assets = {
     Asset("ANIM", "anim/demon_hunger.zip"),
-    Asset("ATLAS", "images/inventoryimages/hunger.xml"),
-    Asset("IMAGE", "images/inventoryimages/hunger.tex"),
+    Asset("ATLAS", "images/inventoryimages/demon_hunger.xml"),
+    Asset("IMAGE", "images/inventoryimages/demon_hunger.tex"),
 }
 
 local DemonHunger = Class(function(self, inst)

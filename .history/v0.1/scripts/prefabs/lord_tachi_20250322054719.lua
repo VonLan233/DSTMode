@@ -5,9 +5,6 @@ local assets =
     Asset("IMAGE", "images/inventoryimages/lord_tachi.tex"),
 }
 
-inst.components.inventoryitem.imagename = "nightsword"   -- 占位
-inst.components.inventoryitem.atlasname = "images/inventoryimages/nightsword.xml"
-
 local function onattack(inst, owner, target)
     if owner.prefab == "vox" then
         if target and target.prefab == "dragonfly" then

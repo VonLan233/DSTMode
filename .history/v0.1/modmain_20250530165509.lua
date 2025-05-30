@@ -28,8 +28,8 @@ local Assets = {
     -- Asset("ATLAS", "images/inventoryimages/cydonia_letter.xml"),
     -- Asset("IMAGE", "images/inventoryimages/throne_ruins.tex"),
     -- Asset("ATLAS", "images/inventoryimages/throne_ruins.xml"),
-    Asset("IMAGE", "images/hud/demon_hunger.tex"),
-    Asset("ATLAS", "images/hud/demon_hunger.xml"),
+    -- Asset("IMAGE", "images/hud/demon_hunger.tex"),
+    -- Asset("ATLAS", "images/hud/demon_hunger.xml"),
 }
 
 PrefabFiles = {

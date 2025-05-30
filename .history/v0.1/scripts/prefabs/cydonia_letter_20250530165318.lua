@@ -6,7 +6,7 @@ local assets =
 }
 
 inst.components.inventoryitem.imagename = "book"         -- 占位
-inst.components.inventoryitem.atlasname = "images/inventoryimages/book.xml"
+inst.components.inventoryitem.atlasname = "images/inven
 
 local function onread(inst, reader)
     if reader.prefab == "vox" then

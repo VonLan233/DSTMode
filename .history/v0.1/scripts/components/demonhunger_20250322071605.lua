@@ -1,12 +1,6 @@
 -- 恶魔饥饿值组件
 -- components/demonhunger.lua
 
-Assets = {
-    Asset("ANIM", "anim/demon_hunger.zip"),
-    Asset("ATLAS", "images/inventoryimages/hunger.xml"),
-    Asset("IMAGE", "images/inventoryimages/hunger.tex"),
-}
-
 local DemonHunger = Class(function(self, inst)
     self.inst = inst
     self.max = 150

@@ -5,9 +5,6 @@ local assets =
     Asset("IMAGE", "images/inventoryimages/yamchaflower_robe.tex"),
 }
 
-inst.components.inventoryitem.imagename = "sweatervest"  -- 占位
-inst.components.inventoryitem.atlasname = "images/inventoryimages/sweatervest.xml"
-
 local function onequip(inst, owner)
     owner.AnimState:OverrideSymbol("swap_body", "yamchaflower_robe", "swap_body")
     

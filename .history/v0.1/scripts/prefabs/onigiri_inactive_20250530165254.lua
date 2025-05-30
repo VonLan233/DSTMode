@@ -10,6 +10,7 @@ local assets =
 inst.components.inventoryitem.imagename = "bernie"       -- 占位  
 inst.components.inventoryitem.atlasname = "images/inventoryimages/bernie.xml"
 
+
 local prefabs =
 {
     "onigiri_active",
